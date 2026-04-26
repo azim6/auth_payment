@@ -34,6 +34,7 @@ DEFAULT_ADMIN_CONTRACT = [
     ("admin_console", "GET", "/api/v1/admin-console/users/{user_id}/overview/", "admin:read", "User control overview"),
     ("admin_console", "GET", "/api/v1/admin-console/orgs/{slug}/overview/", "admin:read", "Organization control overview"),
     ("security", "POST", "/api/v1/security/restrictions/", "admin:security:write", "Restrict a user or organization"),
+    ("security", "POST", "/api/v1/security/restrictions/{restriction_id}/lift/", "admin:security:write", "Lift an active restriction"),
     ("billing", "POST", "/api/v1/billing/entitlement-snapshots/recalculate-with-log/", "admin:entitlements:write", "Recalculate entitlement snapshot"),
 ]
 
