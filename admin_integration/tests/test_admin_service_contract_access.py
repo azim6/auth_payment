@@ -61,6 +61,7 @@ def test_admin_service_can_read_contract_endpoints():
     )
     assert contract_response.status_code == 200
     assert any(item["path"] == "/api/v1/admin-console/users/{user_id}/overview/" for item in contract_response.json())
+    assert any(item["path"] == "/api/v1/security/restrictions/{restriction_id}/lift/" for item in contract_response.json())
 
     user_overview_path = reverse("admin-console-user-overview", kwargs={"user_id": target_user.id})
     user_response = client.get(
@@ -143,6 +144,18 @@ def test_admin_service_can_trigger_security_and_entitlement_actions():
     assert restriction_response.status_code == 201
     restriction = AccountRestriction.objects.get(id=restriction_response.json()["id"])
     assert restriction.created_by is None
+    assert restriction.metadata["admin_service_credential_name"] == "writer-admin-platform"
+
+    lift_path = reverse("security-account-restriction-lift", kwargs={"restriction_id": restriction.id})
+    lift_response = client.post(
+        lift_path,
+        data=b"{}",
+        content_type="application/json",
+        **_signed_headers(credential_key=api_key, signing_secret=signing_secret, method="POST", path=lift_path, body=b"{}", nonce="nonce-5b"),
+    )
+    assert lift_response.status_code == 200
+    restriction.refresh_from_db()
+    assert restriction.lifted_by is None
     assert restriction.metadata["admin_service_credential_name"] == "writer-admin-platform"
 
     recalc_payload = json.dumps({"customer": str(customer.id), "reason": "admin-sync"}, separators=(",", ":")).encode("utf-8")
