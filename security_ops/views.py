@@ -47,7 +47,7 @@ class SecurityRiskEventActionView(StaffOnlyMixin, APIView):
     def post(self, request, event_id):
         event = get_object_or_404(SecurityRiskEvent, id=event_id)
         serializer = SecurityRiskEventActionSerializer(data=request.data, context={"request": request, "event": event})
-        serializer.is_valid(raise_for_status=True)
+        serializer.is_valid(raise_exception=True)
         event = serializer.save()
         return Response(SecurityRiskEventSerializer(event).data)
 
