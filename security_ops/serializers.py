@@ -115,7 +115,11 @@ class AccountRestrictionLiftSerializer(serializers.Serializer):
     def save(self, **kwargs):
         request = self.context["request"]
         restriction = self.context["restriction"]
-        restriction.lift(request.user)
+        audit_metadata = request_admin_audit_metadata(request)
+        if audit_metadata:
+            restriction.metadata = {**(restriction.metadata or {}), **audit_metadata}
+            restriction.save(update_fields=["metadata", "updated_at"])
+        restriction.lift(request_actor_user(request))
         log_security_admin_action(
             request=request,
             action="account_restriction.lifted",
