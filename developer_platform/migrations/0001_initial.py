@@ -1,0 +1,135 @@
+# Generated for v19 developer platform integration layer.
+import uuid
+
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ("accounts", "0009_rbac_policies"),
+        ("billing", "0006_reliability_ops"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="DeveloperApplication",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=160)),
+                ("slug", models.SlugField(max_length=100)),
+                ("app_type", models.CharField(choices=[("web", "Web"), ("android", "Android"), ("windows", "Windows desktop"), ("service", "Service/server"), ("cli", "CLI")], max_length=24)),
+                ("environment", models.CharField(choices=[("development", "Development"), ("staging", "Staging"), ("production", "Production")], default="production", max_length=24)),
+                ("status", models.CharField(choices=[("active", "Active"), ("disabled", "Disabled"), ("suspended", "Suspended")], default="active", max_length=24)),
+                ("client_id", models.CharField(editable=False, max_length=64, unique=True)),
+                ("client_secret_hash", models.CharField(blank=True, max_length=256)),
+                ("client_secret_prefix", models.CharField(blank=True, max_length=16)),
+                ("redirect_uris", models.JSONField(blank=True, default=list)),
+                ("allowed_origins", models.JSONField(blank=True, default=list)),
+                ("allowed_package_names", models.JSONField(blank=True, default=list)),
+                ("allowed_bundle_ids", models.JSONField(blank=True, default=list)),
+                ("allowed_scopes", models.TextField(blank=True, help_text="Space-delimited scopes allowed for this app.")),
+                ("token_ttl_seconds", models.PositiveIntegerField(default=3600)),
+                ("require_pkce", models.BooleanField(default=True)),
+                ("require_mfa", models.BooleanField(default=False)),
+                ("last_used_at", models.DateTimeField(blank=True, null=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("created_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="developer_applications_created", to=settings.AUTH_USER_MODEL)),
+                ("organization", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="developer_applications", to="accounts.organization")),
+                ("project", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name="developer_applications", to="billing.project")),
+            ],
+            options={"ordering": ["organization", "project__code", "name"], "unique_together": {("organization", "slug", "environment")}},
+        ),
+        migrations.CreateModel(
+            name="SDKTokenPolicy",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("platform", models.CharField(choices=[("web", "Web"), ("android", "Android"), ("windows", "Windows"), ("server", "Server")], max_length=24)),
+                ("allow_public_client", models.BooleanField(default=True)),
+                ("require_device_binding", models.BooleanField(default=False)),
+                ("require_attestation", models.BooleanField(default=False)),
+                ("max_token_ttl_seconds", models.PositiveIntegerField(default=3600)),
+                ("allowed_scopes", models.TextField(blank=True)),
+                ("notes", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("application", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="sdk_token_policies", to="developer_platform.developerapplication")),
+            ],
+            options={"ordering": ["application", "platform"], "unique_together": {("application", "platform")}},
+        ),
+        migrations.CreateModel(
+            name="WebhookSubscription",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=160)),
+                ("target_url", models.URLField(max_length=500)),
+                ("status", models.CharField(choices=[("active", "Active"), ("paused", "Paused"), ("disabled", "Disabled")], default="active", max_length=16)),
+                ("event_types", models.JSONField(default=list)),
+                ("secret_hash", models.CharField(blank=True, max_length=256)),
+                ("secret_prefix", models.CharField(blank=True, max_length=16)),
+                ("max_attempts", models.PositiveIntegerField(default=8)),
+                ("last_success_at", models.DateTimeField(blank=True, null=True)),
+                ("last_failure_at", models.DateTimeField(blank=True, null=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("application", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="webhook_subscriptions", to="developer_platform.developerapplication")),
+                ("created_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="webhook_subscriptions_created", to=settings.AUTH_USER_MODEL)),
+                ("organization", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="webhook_subscriptions", to="accounts.organization")),
+            ],
+            options={"ordering": ["organization", "name"]},
+        ),
+        migrations.CreateModel(
+            name="WebhookDelivery",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("event_id", models.UUIDField(default=uuid.uuid4, editable=False)),
+                ("event_type", models.CharField(max_length=120)),
+                ("payload", models.JSONField(default=dict)),
+                ("status", models.CharField(choices=[("pending", "Pending"), ("delivered", "Delivered"), ("failed", "Failed"), ("dead", "Dead-lettered")], default="pending", max_length=16)),
+                ("attempt_count", models.PositiveIntegerField(default=0)),
+                ("next_attempt_at", models.DateTimeField()),
+                ("response_status_code", models.PositiveIntegerField(blank=True, null=True)),
+                ("response_body", models.TextField(blank=True)),
+                ("error_message", models.TextField(blank=True)),
+                ("delivered_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("subscription", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="deliveries", to="developer_platform.webhooksubscription")),
+            ],
+            options={"ordering": ["-created_at"]},
+        ),
+        migrations.CreateModel(
+            name="IntegrationAuditEvent",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("action", models.CharField(max_length=120)),
+                ("target_type", models.CharField(blank=True, max_length=80)),
+                ("target_id", models.CharField(blank=True, max_length=120)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.TextField(blank=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("actor", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="integration_audit_events", to=settings.AUTH_USER_MODEL)),
+                ("application", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="audit_events", to="developer_platform.developerapplication")),
+                ("organization", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="integration_audit_events", to="accounts.organization")),
+            ],
+            options={"ordering": ["-created_at"]},
+        ),
+        migrations.AddIndex(model_name="developerapplication", index=models.Index(fields=["organization", "status"], name="platform_de_organiz_36a837_idx")),
+        migrations.AddIndex(model_name="developerapplication", index=models.Index(fields=["client_id"], name="platform_de_client__d45c85_idx")),
+        migrations.AddIndex(model_name="developerapplication", index=models.Index(fields=["app_type", "environment"], name="platform_de_app_typ_28be4b_idx")),
+        migrations.AddIndex(model_name="webhooksubscription", index=models.Index(fields=["organization", "status"], name="platform_we_organiz_70b9f7_idx")),
+        migrations.AddIndex(model_name="webhooksubscription", index=models.Index(fields=["application", "status"], name="platform_we_applica_5a00cb_idx")),
+        migrations.AddIndex(model_name="webhookdelivery", index=models.Index(fields=["subscription", "status"], name="platform_we_subscri_8698d5_idx")),
+        migrations.AddIndex(model_name="webhookdelivery", index=models.Index(fields=["event_type", "status"], name="platform_we_event_t_733fb8_idx")),
+        migrations.AddIndex(model_name="webhookdelivery", index=models.Index(fields=["next_attempt_at"], name="platform_we_next_at_b71ebc_idx")),
+        migrations.AddIndex(model_name="integrationauditevent", index=models.Index(fields=["organization", "created_at"], name="platform_in_organiz_af0b9b_idx")),
+        migrations.AddIndex(model_name="integrationauditevent", index=models.Index(fields=["action"], name="platform_in_action_3b6123_idx")),
+    ]

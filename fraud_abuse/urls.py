@@ -1,0 +1,41 @@
+from django.urls import path
+
+from .views import (
+    AbuseCaseActionView,
+    AbuseCaseDetailView,
+    AbuseCaseListCreateView,
+    AbuseSignalListCreateView,
+    AbuseSignalPromoteView,
+    DeviceFingerprintDetailView,
+    DeviceFingerprintListCreateView,
+    EnforcementView,
+    IPReputationDetailView,
+    IPReputationListCreateView,
+    PaymentRiskReviewActionView,
+    PaymentRiskReviewListCreateView,
+    SubjectRiskSummaryView,
+    VelocityEventListView,
+    VelocityEventRecordView,
+    VelocityRuleDetailView,
+    VelocityRuleListCreateView,
+)
+
+urlpatterns = [
+    path("devices/", DeviceFingerprintListCreateView.as_view(), name="fraud-devices"),
+    path("devices/<uuid:device_id>/", DeviceFingerprintDetailView.as_view(), name="fraud-device-detail"),
+    path("ip-reputation/", IPReputationListCreateView.as_view(), name="fraud-ip-reputation"),
+    path("ip-reputation/<uuid:ip_id>/", IPReputationDetailView.as_view(), name="fraud-ip-reputation-detail"),
+    path("signals/", AbuseSignalListCreateView.as_view(), name="fraud-signals"),
+    path("signals/<uuid:signal_id>/promote/", AbuseSignalPromoteView.as_view(), name="fraud-signal-promote"),
+    path("velocity-rules/", VelocityRuleListCreateView.as_view(), name="fraud-velocity-rules"),
+    path("velocity-rules/<uuid:rule_id>/", VelocityRuleDetailView.as_view(), name="fraud-velocity-rule-detail"),
+    path("velocity-events/", VelocityEventListView.as_view(), name="fraud-velocity-events"),
+    path("velocity-events/record/", VelocityEventRecordView.as_view(), name="fraud-velocity-event-record"),
+    path("cases/", AbuseCaseListCreateView.as_view(), name="fraud-cases"),
+    path("cases/<uuid:case_id>/", AbuseCaseDetailView.as_view(), name="fraud-case-detail"),
+    path("cases/<uuid:case_id>/action/", AbuseCaseActionView.as_view(), name="fraud-case-action"),
+    path("payment-risk-reviews/", PaymentRiskReviewListCreateView.as_view(), name="fraud-payment-risk-reviews"),
+    path("payment-risk-reviews/<uuid:review_id>/action/", PaymentRiskReviewActionView.as_view(), name="fraud-payment-risk-review-action"),
+    path("enforce/", EnforcementView.as_view(), name="fraud-enforce"),
+    path("summary/", SubjectRiskSummaryView.as_view(), name="fraud-summary"),
+]

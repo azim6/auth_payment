@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Auth Platform Web Example</title>
+  </head>
+  <body>
+    <h1>Auth Platform Web Example</h1>
+    <p>This example uses the TypeScript SDK shape from <code>sdks/typescript</code>.</p>
+    <script type="module">
+      import { AuthPlatformClient } from "../../sdks/typescript/src/index.ts";
+      const client = new AuthPlatformClient({ baseUrl: "https://auth.example.com" });
+      window.authPlatform = client;
+    </script>
+  </body>
+</html>

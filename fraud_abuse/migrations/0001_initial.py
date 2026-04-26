@@ -1,0 +1,156 @@
+# Generated for django-auth-platform v23.
+import uuid
+from django.conf import settings
+from django.db import migrations, models
+import django.db.models.deletion
+import django.utils.timezone
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ("accounts", "0009_rbac_policies"),
+        ("billing", "0006_reliability_ops"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="DeviceFingerprint",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("fingerprint_hash", models.CharField(max_length=128, unique=True)),
+                ("trust_level", models.CharField(choices=[("unknown", "Unknown"), ("trusted", "Trusted"), ("watch", "Watch"), ("blocked", "Blocked")], default="unknown", max_length=16)),
+                ("first_seen_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("last_seen_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("user_count", models.PositiveIntegerField(default=0)),
+                ("ip_count", models.PositiveIntegerField(default=0)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("reviewed_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("last_organization", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="last_seen_device_fingerprints", to="accounts.organization")),
+                ("last_user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="last_seen_device_fingerprints", to=settings.AUTH_USER_MODEL)),
+                ("reviewed_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="reviewed_device_fingerprints", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-last_seen_at"]},
+        ),
+        migrations.CreateModel(
+            name="IPReputation",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("ip_address", models.GenericIPAddressField(unique=True)),
+                ("reputation", models.CharField(choices=[("good", "Good"), ("unknown", "Unknown"), ("suspicious", "Suspicious"), ("bad", "Bad"), ("blocked", "Blocked")], default="unknown", max_length=16)),
+                ("risk_score", models.PositiveSmallIntegerField(default=0)),
+                ("country_code", models.CharField(blank=True, max_length=2)),
+                ("asn", models.CharField(blank=True, max_length=32)),
+                ("source", models.CharField(default="internal", max_length=80)),
+                ("first_seen_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("last_seen_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("expires_at", models.DateTimeField(blank=True, null=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+            ],
+            options={"ordering": ["-risk_score", "-last_seen_at"]},
+        ),
+        migrations.CreateModel(
+            name="VelocityRule",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=160)),
+                ("event_name", models.CharField(help_text="Machine event name, e.g. auth.login_failed or billing.checkout_created.", max_length=120)),
+                ("scope", models.CharField(default="user", help_text="user, organization, ip, device, or global.", max_length=32)),
+                ("threshold", models.PositiveIntegerField()),
+                ("window_seconds", models.PositiveIntegerField(default=300)),
+                ("action", models.CharField(choices=[("monitor", "Monitor"), ("review", "Review"), ("challenge", "Challenge"), ("restrict", "Restrict"), ("block", "Block")], default="review", max_length=16)),
+                ("risk_score", models.PositiveSmallIntegerField(default=50)),
+                ("enabled", models.BooleanField(default=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+            ],
+            options={"ordering": ["event_name", "scope", "threshold"]},
+        ),
+        migrations.CreateModel(
+            name="AbuseSignal",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("category", models.CharField(choices=[("auth", "Authentication"), ("billing", "Billing"), ("payment", "Payment"), ("api", "API"), ("content", "Content"), ("notification", "Notification"), ("platform", "Platform")], max_length=24)),
+                ("signal", models.CharField(max_length=120)),
+                ("severity", models.CharField(choices=[("info", "Info"), ("low", "Low"), ("medium", "Medium"), ("high", "High"), ("critical", "Critical")], default="low", max_length=16)),
+                ("score", models.PositiveSmallIntegerField(default=0)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.TextField(blank=True)),
+                ("summary", models.CharField(max_length=255)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("event_idempotency_key", models.CharField(blank=True, max_length=160, null=True, unique=True)),
+                ("observed_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("device", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_signals", to="fraud_abuse.devicefingerprint")),
+                ("ip_reputation", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_signals", to="fraud_abuse.ipreputation")),
+                ("organization", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_signals", to="accounts.organization")),
+                ("subscription", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_signals", to="billing.subscription")),
+                ("user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_signals", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-observed_at"]},
+        ),
+        migrations.CreateModel(
+            name="VelocityEvent",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("event_name", models.CharField(max_length=120)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("occurred_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("device", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="velocity_events", to="fraud_abuse.devicefingerprint")),
+                ("organization", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="velocity_events", to="accounts.organization")),
+                ("user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="velocity_events", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-occurred_at"]},
+        ),
+        migrations.CreateModel(
+            name="AbuseCase",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("case_type", models.CharField(choices=[("account_takeover", "Account takeover"), ("payment_fraud", "Payment fraud"), ("spam", "Spam"), ("api_abuse", "API abuse"), ("policy", "Policy abuse"), ("other", "Other")], max_length=32)),
+                ("status", models.CharField(choices=[("open", "Open"), ("reviewing", "Reviewing"), ("mitigated", "Mitigated"), ("resolved", "Resolved"), ("false_positive", "False positive")], default="open", max_length=24)),
+                ("severity", models.CharField(choices=[("info", "Info"), ("low", "Low"), ("medium", "Medium"), ("high", "High"), ("critical", "Critical")], default="medium", max_length=16)),
+                ("title", models.CharField(max_length=200)),
+                ("summary", models.TextField(blank=True)),
+                ("resolution_notes", models.TextField(blank=True)),
+                ("opened_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("resolved_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("organization", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_cases", to="accounts.organization")),
+                ("owner", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="owned_abuse_cases", to=settings.AUTH_USER_MODEL)),
+                ("signals", models.ManyToManyField(blank=True, related_name="abuse_cases", to="fraud_abuse.abusesignal")),
+                ("user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="abuse_cases", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-opened_at"]},
+        ),
+        migrations.CreateModel(
+            name="PaymentRiskReview",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("status", models.CharField(choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected"), ("escalated", "Escalated")], default="pending", max_length=24)),
+                ("risk_score", models.PositiveSmallIntegerField(default=0)),
+                ("reason", models.TextField()),
+                ("decision_notes", models.TextField(blank=True)),
+                ("reviewed_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("customer", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="payment_risk_reviews", to="billing.billingcustomer")),
+                ("invoice", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="payment_risk_reviews", to="billing.invoice")),
+                ("organization", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="payment_risk_reviews", to="accounts.organization")),
+                ("reviewed_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="reviewed_payment_risks", to=settings.AUTH_USER_MODEL)),
+                ("signals", models.ManyToManyField(blank=True, related_name="payment_risk_reviews", to="fraud_abuse.abusesignal")),
+                ("subscription", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="payment_risk_reviews", to="billing.subscription")),
+                ("transaction", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="payment_risk_reviews", to="billing.paymenttransaction")),
+            ],
+            options={"ordering": ["-created_at"]},
+        ),
+    ]
