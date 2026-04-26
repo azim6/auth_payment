@@ -47,7 +47,7 @@ class SecurityRiskEventActionView(StaffOnlyMixin, APIView):
     def post(self, request, event_id):
         event = get_object_or_404(SecurityRiskEvent, id=event_id)
         serializer = SecurityRiskEventActionSerializer(data=request.data, context={"request": request, "event": event})
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_for_status=True)
         event = serializer.save()
         return Response(SecurityRiskEventSerializer(event).data)
 
@@ -79,6 +79,10 @@ class AccountRestrictionListCreateView(StaffOnlyMixin, generics.ListCreateAPIVie
 
 
 class AccountRestrictionLiftView(StaffOnlyMixin, APIView):
+    authentication_classes = ADMIN_SERVICE_AUTHENTICATION_CLASSES
+    permission_classes = [StaffOrAdminServiceScope]
+    required_admin_scopes = ["admin:security:write"]
+
     def post(self, request, restriction_id):
         restriction = get_object_or_404(AccountRestriction, id=restriction_id)
         serializer = AccountRestrictionLiftSerializer(data=request.data, context={"request": request, "restriction": restriction})
